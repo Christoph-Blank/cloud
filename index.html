@@ -1,41 +1,151 @@
 <!DOCTYPE html>
-<html>
+<html lang="de">
 <head>
-  <title>My Cloud</title>
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js"></script>
+<meta charset="UTF-8">
+<title>Mini Cloud</title>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+<style>
+body{
+font-family: Arial;
+background:#0f172a;
+color:white;
+display:flex;
+justify-content:center;
+padding:40px;
+}
+
+.container{
+width:600px;
+background:#1e293b;
+padding:30px;
+border-radius:10px;
+box-shadow:0 10px 25px rgba(0,0,0,0.4);
+}
+
+h1{
+text-align:center;
+}
+
+.upload{
+margin-bottom:20px;
+}
+
+button{
+background:#3b82f6;
+border:none;
+padding:10px 15px;
+color:white;
+border-radius:6px;
+cursor:pointer;
+}
+
+button:hover{
+background:#2563eb;
+}
+
+.file{
+display:flex;
+justify-content:space-between;
+align-items:center;
+background:#334155;
+padding:10px;
+border-radius:6px;
+margin-bottom:10px;
+}
+
+.download{
+background:#22c55e;
+}
+</style>
+
 </head>
 <body>
 
-<h2>Datei hochladen</h2>
+<div class="container">
 
+<h1>☁️ My Cloud</h1>
+
+<div class="upload">
 <input type="file" id="fileInput">
 <button onclick="uploadFile()">Upload</button>
+</div>
+
+<div id="fileList"></div>
+
+</div>
 
 <script>
 
 const supabaseUrl = "https://tsuboribhcsporomvjeu.supabase.co";
 const supabaseKey = "sb_publishable_9sJE1Nuj28-Qr8JpSWSaoQ_eVuDylHX";
 
-const supabase = supabase.createClient(supabaseUrl, supabaseKey);
+const client = supabase.createClient(supabaseUrl, supabaseKey);
 
-async function uploadFile() {
+async function uploadFile(){
 
-  const file = document.getElementById("fileInput").files[0];
+const file = document.getElementById("fileInput").files[0];
 
-  const { data, error } = await supabase.storage
-    .from("files")
-    .upload(file.name, file);
+if(!file){
+alert("Bitte Datei auswählen");
+return;
+}
 
-  if(error){
-    alert("Upload Fehler");
-    console.log(error);
-  } else {
-    alert("Upload erfolgreich!");
-  }
+const {error} = await client.storage
+.from("files")
+.upload(file.name, file);
+
+if(error){
+alert("Upload Fehler");
+console.log(error);
+}else{
+alert("Upload erfolgreich");
+loadFiles();
+}
 
 }
+
+async function loadFiles(){
+
+const {data, error} = await client
+.storage
+.from("files")
+.list();
+
+const list = document.getElementById("fileList");
+list.innerHTML="";
+
+data.forEach(file => {
+
+const div = document.createElement("div");
+div.className="file";
+
+div.innerHTML = `
+<span>${file.name}</span>
+<button class="download" onclick="downloadFile('${file.name}')">Download</button>
+`;
+
+list.appendChild(div);
+
+});
+
+}
+
+function downloadFile(name){
+
+const {data} = client.storage
+.from("files")
+.getPublicUrl(name);
+
+window.open(data.publicUrl);
+
+}
+
+loadFiles();
 
 </script>
 
 </body>
 </html>
+

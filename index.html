@@ -2,7 +2,7 @@
 <html lang="de">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>My Cloud</title>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
@@ -10,33 +10,37 @@
 <style>
 
 body{
-font-family: system-ui;
+font-family:system-ui;
 background:#0f172a;
 color:white;
 margin:0;
-padding:0;
 }
 
 header{
 background:#1e293b;
-padding:15px;
+padding:16px;
+text-align:center;
 font-size:20px;
 font-weight:bold;
-text-align:center;
 }
 
 .container{
-padding:20px;
 max-width:900px;
 margin:auto;
+padding:20px;
 }
 
 .dropzone{
 border:2px dashed #3b82f6;
 border-radius:12px;
-padding:30px;
+padding:40px;
 text-align:center;
+cursor:pointer;
 margin-bottom:20px;
+}
+
+.dropzone:hover{
+background:#1e293b;
 }
 
 .file{
@@ -51,7 +55,7 @@ margin-bottom:10px;
 
 button{
 border:none;
-padding:8px 12px;
+padding:6px 10px;
 border-radius:8px;
 cursor:pointer;
 }
@@ -68,18 +72,20 @@ overflow:hidden;
 margin-top:5px;
 }
 
-.progress-bar{
+.bar{
 height:100%;
-background:#22c55e;
 width:0%;
+background:#22c55e;
 }
 
 @media(max-width:600px){
+
 .file{
 flex-direction:column;
 align-items:flex-start;
-gap:8px;
+gap:6px;
 }
+
 }
 
 </style>
@@ -92,11 +98,16 @@ gap:8px;
 <div class="container">
 
 <div class="dropzone" id="dropzone">
-Drag & Drop Dateien hier oder klicken
-<input type="file" id="fileInput" multiple hidden>
+Drag & Drop Dateien oder Ordner hier<br>
+oder klicken zum auswählen
 </div>
 
-<div id="progressContainer"></div>
+<input type="file" id="fileInput" multiple hidden>
+<input type="file" id="folderInput" webkitdirectory multiple hidden>
+
+<div id="progress"></div>
+
+<h3>Dateien</h3>
 
 <div id="fileList"></div>
 
@@ -104,23 +115,19 @@ Drag & Drop Dateien hier oder klicken
 
 <script>
 
-const supabaseUrl="https://tsuboribhcsporomvjeu.supabase.co";
-const supabaseKey="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRzdWJvcmliaGNzcG9yb212amV1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzMxMTc1MjQsImV4cCI6MjA4ODY5MzUyNH0.GMWCUbfjiMb_HMM5JG38ZvaB7qBh_tfFoGDE6zEduJ0";
+const supabaseUrl="DEINE_SUPABASE_URL";
+const supabaseKey="DEIN_ANON_KEY";
 
 const client=supabase.createClient(supabaseUrl,supabaseKey);
 
 const dropzone=document.getElementById("dropzone");
 const fileInput=document.getElementById("fileInput");
+const folderInput=document.getElementById("folderInput");
 
 dropzone.onclick=()=>fileInput.click();
 
 dropzone.addEventListener("dragover",(e)=>{
 e.preventDefault();
-dropzone.style.background="#1e293b";
-});
-
-dropzone.addEventListener("dragleave",()=>{
-dropzone.style.background="transparent";
 });
 
 dropzone.addEventListener("drop",(e)=>{
@@ -132,44 +139,73 @@ fileInput.addEventListener("change",(e)=>{
 handleFiles(e.target.files);
 });
 
+folderInput.addEventListener("change",(e)=>{
+uploadFolder(e.target.files);
+});
+
 async function handleFiles(files){
 
 for(const file of files){
 
-const progressDiv=document.createElement("div");
-
-progressDiv.innerHTML=`
-${file.name}
-<div class="progress">
-<div class="progress-bar"></div>
-</div>
-`;
-
-document.getElementById("progressContainer").appendChild(progressDiv);
-
-const bar=progressDiv.querySelector(".progress-bar");
-
-const {error}=await client.storage
-.from("files")
-.upload(file.name,file,{upsert:true});
-
-bar.style.width="100%";
-
-if(error){
-console.error(error);
-alert("Upload Fehler: "+error.message);
-}
+await uploadFile(file,file.name);
 
 }
 
 loadFiles();
+
+}
+
+async function uploadFolder(files){
+
+for(const file of files){
+
+let path=file.webkitRelativePath || file.name;
+
+path=path
+.replace(/\s+/g,"_")
+.replace(/[^a-zA-Z0-9_\-\/\.]/g,"");
+
+await uploadFile(file,path);
+
+}
+
+loadFiles();
+
+}
+
+async function uploadFile(file,path){
+
+const progress=document.createElement("div");
+
+progress.innerHTML=`
+${path}
+<div class="progress">
+<div class="bar"></div>
+</div>
+`;
+
+document.getElementById("progress").appendChild(progress);
+
+const bar=progress.querySelector(".bar");
+
+const {error}=await client.storage
+.from("files")
+.upload(path,file,{upsert:true});
+
+bar.style.width="100%";
+
+if(error){
+alert("Upload Fehler: "+error.message);
+console.error(error);
+}
+
 }
 
 async function loadFiles(){
 
 const {data}=await client.storage
 .from("files")
-.list();
+.list("",{limit:100});
 
 const list=document.getElementById("fileList");
 list.innerHTML="";
@@ -177,15 +213,26 @@ list.innerHTML="";
 data.forEach(file=>{
 
 const div=document.createElement("div");
+
 div.className="file";
 
 div.innerHTML=`
 <span>${file.name}</span>
 
 <div>
-<button class="download" onclick="downloadFile('${file.name}')">Download</button>
-<button class="copy" onclick="copyLink('${file.name}')">Link</button>
-<button class="delete" onclick="deleteFile('${file.name}')">Delete</button>
+
+<button class="download" onclick="downloadFile('${file.name}')">
+Download
+</button>
+
+<button class="copy" onclick="copyLink('${file.name}')">
+Link
+</button>
+
+<button class="delete" onclick="deleteFile('${file.name}')">
+Delete
+</button>
+
 </div>
 `;
 
@@ -205,18 +252,6 @@ window.open(data.publicUrl);
 
 }
 
-async function deleteFile(name){
-
-if(!confirm("Datei löschen?")) return;
-
-await client.storage
-.from("files")
-.remove([name]);
-
-loadFiles();
-
-}
-
 function copyLink(name){
 
 const {data}=client.storage
@@ -226,6 +261,18 @@ const {data}=client.storage
 navigator.clipboard.writeText(data.publicUrl);
 
 alert("Link kopiert");
+
+}
+
+async function deleteFile(name){
+
+if(!confirm("Datei löschen?")) return;
+
+await client.storage
+.from("files")
+.remove([name]);
+
+loadFiles();
 
 }
 

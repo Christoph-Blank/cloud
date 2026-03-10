@@ -46,25 +46,11 @@ margin-bottom:20px;
 background:#1e293b;
 }
 
-.buttons{
-display:flex;
-gap:10px;
-margin-bottom:20px;
+.path{
+margin-bottom:15px;
+font-size:14px;
+color:#94a3b8;
 }
-
-button{
-border:none;
-padding:8px 14px;
-border-radius:8px;
-cursor:pointer;
-font-weight:600;
-}
-
-.upload{background:#3b82f6;color:white;}
-.folder{background:#8b5cf6;color:white;}
-.download{background:#22c55e;color:black;}
-.copy{background:#3b82f6;color:white;}
-.delete{background:#ef4444;color:white;}
 
 .file{
 display:flex;
@@ -75,6 +61,24 @@ padding:10px;
 border-radius:10px;
 margin-bottom:10px;
 }
+
+.folder{
+cursor:pointer;
+font-weight:600;
+}
+
+button{
+border:none;
+padding:6px 10px;
+border-radius:8px;
+cursor:pointer;
+}
+
+.upload{background:#3b82f6;color:white;}
+.folderbtn{background:#8b5cf6;color:white;}
+.download{background:#22c55e;color:black;}
+.delete{background:#ef4444;color:white;}
+.copy{background:#3b82f6;color:white;}
 
 .progress{
 height:6px;
@@ -98,10 +102,6 @@ align-items:flex-start;
 gap:6px;
 }
 
-.buttons{
-flex-direction:column;
-}
-
 }
 
 </style>
@@ -114,21 +114,14 @@ flex-direction:column;
 
 <div class="container">
 
+<div class="path" id="path"></div>
+
 <div class="dropzone" id="dropzone">
 Drag & Drop Dateien hier
 </div>
 
-<div class="buttons">
-
-<button class="upload" onclick="fileInput.click()">
-Dateien hochladen
-</button>
-
-<button class="folder" onclick="folderInput.click()">
-Ordner hochladen
-</button>
-
-</div>
+<button class="upload" onclick="fileInput.click()">Dateien hochladen</button>
+<button class="folderbtn" onclick="folderInput.click()">Ordner hochladen</button>
 
 <input type="file" id="fileInput" multiple hidden>
 <input type="file" id="folderInput" webkitdirectory multiple hidden>
@@ -147,6 +140,8 @@ const supabaseUrl="https://tsuboribhcsporomvjeu.supabase.co";
 const supabaseKey="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRzdWJvcmliaGNzcG9yb212amV1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzMxMTc1MjQsImV4cCI6MjA4ODY5MzUyNH0.GMWCUbfjiMb_HMM5JG38ZvaB7qBh_tfFoGDE6zEduJ0";
 
 const client=supabase.createClient(supabaseUrl,supabaseKey);
+
+let currentPath="";
 
 const dropzone=document.getElementById("dropzone");
 const fileInput=document.getElementById("fileInput");
@@ -169,11 +164,20 @@ e.preventDefault();
 uploadFiles(e.dataTransfer.files);
 });
 
+function updatePath(){
+
+document.getElementById("path").innerHTML=
+currentPath=="" ? "/" : "/"+currentPath;
+
+}
+
 async function uploadFiles(files){
 
 for(const file of files){
 
-await uploadFile(file,file.name);
+let path=currentPath+file.name;
+
+await uploadFile(file,path);
 
 }
 
@@ -185,7 +189,7 @@ async function uploadFolder(files){
 
 for(const file of files){
 
-let path=file.webkitRelativePath || file.name;
+let path=currentPath+(file.webkitRelativePath || file.name);
 
 path=path
 .replace(/\s+/g,"_")
@@ -229,37 +233,83 @@ console.error(error);
 
 async function loadFiles(){
 
+updatePath();
+
 const {data}=await client.storage
 .from("files")
-.list("",{limit:100});
+.list(currentPath,{limit:100});
 
 const list=document.getElementById("fileList");
+
 list.innerHTML="";
 
-data.forEach(file=>{
+if(currentPath!=""){
+
+const up=document.createElement("div");
+
+up.className="file folder";
+
+up.innerHTML="⬅️ ..";
+
+up.onclick=()=>{
+
+currentPath=currentPath.split("/").slice(0,-2).join("/");
+
+if(currentPath!="") currentPath+="/";
+
+loadFiles();
+
+};
+
+list.appendChild(up);
+
+}
+
+data.forEach(item=>{
 
 const div=document.createElement("div");
+
 div.className="file";
 
+if(item.id==null){
+
+div.classList.add("folder");
+
+div.innerHTML=`📂 ${item.name}`;
+
+div.onclick=()=>{
+
+currentPath+=item.name+"/";
+
+loadFiles();
+
+};
+
+}else{
+
 div.innerHTML=`
-<span>${file.name}</span>
+
+<span>${item.name}</span>
 
 <div>
 
-<button class="download" onclick="downloadFile('${file.name}')">
+<button class="download" onclick="downloadFile('${currentPath+item.name}')">
 Download
 </button>
 
-<button class="copy" onclick="copyLink('${file.name}')">
+<button class="copy" onclick="copyLink('${currentPath+item.name}')">
 Link
 </button>
 
-<button class="delete" onclick="deleteFile('${file.name}')">
+<button class="delete" onclick="deleteFile('${currentPath+item.name}')">
 Delete
 </button>
 
 </div>
+
 `;
+
+}
 
 list.appendChild(div);
 
@@ -267,21 +317,21 @@ list.appendChild(div);
 
 }
 
-function downloadFile(name){
+function downloadFile(path){
 
 const {data}=client.storage
 .from("files")
-.getPublicUrl(name);
+.getPublicUrl(path);
 
 window.open(data.publicUrl);
 
 }
 
-function copyLink(name){
+function copyLink(path){
 
 const {data}=client.storage
 .from("files")
-.getPublicUrl(name);
+.getPublicUrl(path);
 
 navigator.clipboard.writeText(data.publicUrl);
 
@@ -289,13 +339,13 @@ alert("Link kopiert");
 
 }
 
-async function deleteFile(name){
+async function deleteFile(path){
 
 if(!confirm("Datei löschen?")) return;
 
 await client.storage
 .from("files")
-.remove([name]);
+.remove([path]);
 
 loadFiles();
 
@@ -306,6 +356,4 @@ loadFiles();
 </script>
 
 </body>
-
 </html>
-

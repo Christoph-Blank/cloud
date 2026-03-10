@@ -6,75 +6,75 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-<title>My Cloud</title>
+<title>Family Cloud</title>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
 <style>
 
 body{
-font-family:system-ui;
-background:#334155;
-color:white;
-margin:0;
+  font-family:system-ui;
+  background:#334155;
+  color:white;
+  margin:0;
 }
 
 header{
-background:#475569;
-padding:18px;
-text-align:center;
-font-size:22px;
-font-weight:bold;
+  background:#475569;
+  padding:18px;
+  text-align:center;
+  font-size:22px;
+  font-weight:bold;
 }
 
 .container{
-max-width:900px;
-margin:auto;
-padding:20px;
+  max-width:900px;
+  margin:auto;
+  padding:20px;
 }
 
 .path{
-margin-bottom:15px;
-font-size:14px;
-color:#e2e8f0;
+  margin-bottom:15px;
+  font-size:14px;
+  color:#e2e8f0;
 }
 
 .dropzone{
-border:2px dashed #60a5fa;
-border-radius:12px;
-padding:35px;
-text-align:center;
-cursor:pointer;
-margin-bottom:20px;
-background:#475569;
+  border:2px dashed #60a5fa;
+  border-radius:12px;
+  padding:35px;
+  text-align:center;
+  cursor:pointer;
+  margin-bottom:20px;
+  background:#475569;
 }
 
 .dropzone:hover{
-background:#526377;
+  background:#526377;
 }
 
 .file{
-display:flex;
-justify-content:space-between;
-align-items:center;
-background:#475569;
-padding:10px;
-border-radius:10px;
-margin-bottom:10px;
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  background:#475569;
+  padding:10px;
+  border-radius:10px;
+  margin-bottom:10px;
 }
 
 .folder{
-cursor:pointer;
-font-weight:600;
+  cursor:pointer;
+  font-weight:600;
 }
 
 button{
-border:none;
-padding:6px 10px;
-border-radius:8px;
-cursor:pointer;
-font-weight:600;
-margin-left:4px;
+  border:none;
+  padding:6px 10px;
+  border-radius:8px;
+  cursor:pointer;
+  font-weight:600;
+  margin-left:4px;
 }
 
 .upload{background:#3b82f6;color:white;}
@@ -85,25 +85,26 @@ margin-left:4px;
 .delete{background:#ef4444;color:white;}
 
 .progress{
-height:6px;
-background:#64748b;
-border-radius:4px;
-overflow:hidden;
-margin-top:4px;
+  height:6px;
+  background:#64748b;
+  border-radius:4px;
+  overflow:hidden;
+  margin-top:4px;
 }
 
 .bar{
-height:100%;
-width:0%;
-background:#22c55e;
+  height:100%;
+  width:0%;
+  background:#22c55e;
+  transition: width 0.3s ease;
 }
 
 @media(max-width:600px){
 
 .file{
-flex-direction:column;
-align-items:flex-start;
-gap:6px;
+  flex-direction:column;
+  align-items:flex-start;
+  gap:6px;
 }
 
 }
@@ -114,7 +115,7 @@ gap:6px;
 
 <body>
 
-<header>☁️ My Cloud</header>
+<header>☁️ Family Cloud</header>
 
 <div class="container">
 
@@ -152,214 +153,153 @@ const fileInput=document.getElementById("fileInput");
 const folderInput=document.getElementById("folderInput");
 
 fileInput.addEventListener("change",(e)=>{
-uploadFiles(e.target.files);
+  uploadFiles(e.target.files);
 });
 
 folderInput.addEventListener("change",(e)=>{
-uploadFolder(e.target.files);
+  uploadFolder(e.target.files);
 });
 
 dropzone.addEventListener("dragover",(e)=>{
-e.preventDefault();
+  e.preventDefault();
 });
 
 dropzone.addEventListener("drop",(e)=>{
-e.preventDefault();
-uploadFiles(e.dataTransfer.files);
+  e.preventDefault();
+  uploadFiles(e.dataTransfer.files);
 });
 
 function updatePath(){
-
-let text=currentPath=="" ? "/" : "/"+currentPath;
-
-document.getElementById("path").innerHTML=text;
-
+  let text=currentPath=="" ? "/" : "/"+currentPath;
+  document.getElementById("path").innerHTML=text;
 }
 
 async function uploadFiles(files){
-
-for(const file of files){
-
-let path=currentPath+file.name;
-
-await uploadFile(file,path);
-
-}
-
-loadFiles();
-
+  for(const file of files){
+    let path=currentPath+file.name;
+    await uploadFile(file,path);
+  }
+  loadFiles();
 }
 
 async function uploadFolder(files){
-
-for(const file of files){
-
-let path=currentPath+(file.webkitRelativePath || file.name);
-
-path=path
-.replace(/\s+/g,"_")
-.replace(/[^a-zA-Z0-9_\-\/\.]/g,"");
-
-await uploadFile(file,path);
-
-}
-
-loadFiles();
-
+  for(const file of files){
+    let path=currentPath+(file.webkitRelativePath || file.name);
+    path=path.replace(/\s+/g,"_").replace(/[^a-zA-Z0-9_\-\/\.]/g,"");
+    await uploadFile(file,path);
+  }
+  loadFiles();
 }
 
 async function uploadFile(file,path){
 
-const progress=document.createElement("div");
+  // Fortschrittsanzeige erstellen
+  const progress=document.createElement("div");
+  progress.innerHTML=`
+    ${path}
+    <div class="progress">
+      <div class="bar"></div>
+    </div>
+  `;
+  document.getElementById("progressContainer").appendChild(progress);
+  const bar=progress.querySelector(".bar");
 
-progress.innerHTML=`
-${path}
-<div class="progress">
-<div class="bar"></div>
-</div>
-`;
+  // Datei hochladen
+  const {error}=await client.storage
+    .from("files")
+    .upload(path,file,{upsert:true});
 
-document.getElementById("progressContainer").appendChild(progress);
+  bar.style.width="100%";
 
-const bar=progress.querySelector(".bar");
+  if(error){
+    alert("Upload Fehler: "+error.message);
+    console.error(error);
+  }
 
-const {error}=await client.storage
-.from("files")
-.upload(path,file,{upsert:true});
-
-bar.style.width="100%";
-
-if(error){
-alert("Upload Fehler: "+error.message);
-console.error(error);
-}
+  // Fortschrittsbalken nach kurzer Zeit ausblenden
+  setTimeout(()=>{
+    progress.remove();
+  },800);
 
 }
 
 async function loadFiles(){
+  updatePath();
 
-updatePath();
+  const {data}=await client.storage
+    .from("files")
+    .list(currentPath,{limit:100});
 
-const {data}=await client.storage
-.from("files")
-.list(currentPath,{limit:100});
+  const list=document.getElementById("fileList");
+  list.innerHTML="";
 
-const list=document.getElementById("fileList");
+  if(currentPath!=""){
+    const up=document.createElement("div");
+    up.className="file folder";
+    up.innerHTML="⬅️ Zurück";
+    up.onclick=()=>{
+      currentPath=currentPath.split("/").slice(0,-2).join("/");
+      if(currentPath!="") currentPath+="/";
+      loadFiles();
+    };
+    list.appendChild(up);
+  }
 
-list.innerHTML="";
+  data.forEach(item=>{
+    const div=document.createElement("div");
+    div.className="file";
 
-if(currentPath!=""){
+    if(item.id==null){ // Ordner
+      div.classList.add("folder");
+      div.innerHTML=`📂 ${item.name}`;
+      div.onclick=()=>{
+        currentPath+=item.name+"/";
+        loadFiles();
+      };
+    }else{ // Datei
+      div.innerHTML=`
+        <span>${item.name}</span>
+        <div>
+          <button class="download" onclick="downloadFile('${currentPath+item.name}')">Download</button>
+          <button class="copy" onclick="copyLink('${currentPath+item.name}')">Link</button>
+          <button class="open" onclick="openFile('${currentPath+item.name}')">Öffnen</button>
+          <button class="delete" onclick="deleteFile('${currentPath+item.name}')">Löschen</button>
+        </div>
+      `;
+    }
 
-const up=document.createElement("div");
-
-up.className="file folder";
-
-up.innerHTML="⬅️ Zurück";
-
-up.onclick=()=>{
-
-currentPath=currentPath.split("/").slice(0,-2).join("/");
-
-if(currentPath!="") currentPath+="/";
-
-loadFiles();
-
-};
-
-list.appendChild(up);
-
-}
-
-data.forEach(item=>{
-
-const div=document.createElement("div");
-
-div.className="file";
-
-if(item.id==null){
-
-div.classList.add("folder");
-
-div.innerHTML=`📂 ${item.name}`;
-
-div.onclick=()=>{
-
-currentPath+=item.name+"/";
-
-loadFiles();
-
-};
-
-}else{
-
-div.innerHTML=`
-
-<span>${item.name}</span>
-
-<div>
-
-<button class="download" onclick="downloadFile('${currentPath+item.name}')">Download</button>
-
-<button class="copy" onclick="copyLink('${currentPath+item.name}')">Link</button>
-
-<button class="open" onclick="openFile('${currentPath+item.name}')">Öffnen</button>
-
-<button class="delete" onclick="deleteFile('${currentPath+item.name}')">Löschen</button>
-
-</div>
-
-`;
-
-}
-
-list.appendChild(div);
-
-});
-
+    list.appendChild(div);
+  });
 }
 
 function downloadFile(path){
-
-const {data}=client.storage
-.from("files")
-.getPublicUrl(path);
-
-window.open(data.publicUrl);
-
+  const {data}=client.storage
+    .from("files")
+    .getPublicUrl(path);
+  window.open(data.publicUrl);
 }
 
 function copyLink(path){
-
-const {data}=client.storage
-.from("files")
-.getPublicUrl(path);
-
-navigator.clipboard.writeText(data.publicUrl);
-
-alert("Link kopiert");
-
+  const {data}=client.storage
+    .from("files")
+    .getPublicUrl(path);
+  navigator.clipboard.writeText(data.publicUrl);
+  alert("Link kopiert");
 }
 
 function openFile(path){
-
-const {data}=client.storage
-.from("files")
-.getPublicUrl(path);
-
-window.open(data.publicUrl,"_blank");
-
+  const {data}=client.storage
+    .from("files")
+    .getPublicUrl(path);
+  window.open(data.publicUrl,"_blank");
 }
 
 async function deleteFile(path){
-
-if(!confirm("Datei löschen?")) return;
-
-await client.storage
-.from("files")
-.remove([path]);
-
-loadFiles();
-
+  if(!confirm("Datei löschen?")) return;
+  await client.storage
+    .from("files")
+    .remove([path]);
+  loadFiles();
 }
 
 loadFiles();
@@ -368,4 +308,3 @@ loadFiles();
 
 </body>
 </html>
-

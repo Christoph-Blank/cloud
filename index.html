@@ -74,12 +74,14 @@ padding:6px 10px;
 border-radius:8px;
 cursor:pointer;
 font-weight:600;
+margin-left:4px;
 }
 
 .upload{background:#3b82f6;color:white;}
 .folderbtn{background:#8b5cf6;color:white;}
 .download{background:#22c55e;color:black;}
 .copy{background:#3b82f6;color:white;}
+.open{background:#0ea5e9;color:white;}
 .delete{background:#ef4444;color:white;}
 
 .progress{
@@ -168,8 +170,9 @@ uploadFiles(e.dataTransfer.files);
 
 function updatePath(){
 
-document.getElementById("path").innerHTML=
-currentPath=="" ? "/" : "/"+currentPath;
+let text=currentPath=="" ? "/" : "/"+currentPath;
+
+document.getElementById("path").innerHTML=text;
 
 }
 
@@ -251,7 +254,7 @@ const up=document.createElement("div");
 
 up.className="file folder";
 
-up.innerHTML="⬅️ ..";
+up.innerHTML="⬅️ Zurück";
 
 up.onclick=()=>{
 
@@ -295,17 +298,13 @@ div.innerHTML=`
 
 <div>
 
-<button class="download" onclick="downloadFile('${currentPath+item.name}')">
-Download
-</button>
+<button class="download" onclick="downloadFile('${currentPath+item.name}')">Download</button>
 
-<button class="copy" onclick="copyLink('${currentPath+item.name}')">
-Link
-</button>
+<button class="copy" onclick="copyLink('${currentPath+item.name}')">Link</button>
 
-<button class="delete" onclick="deleteFile('${currentPath+item.name}')">
-Delete
-</button>
+<button class="open" onclick="openFile('${currentPath+item.name}')">Öffnen</button>
+
+<button class="delete" onclick="deleteFile('${currentPath+item.name}')">Löschen</button>
 
 </div>
 
@@ -341,6 +340,16 @@ alert("Link kopiert");
 
 }
 
+function openFile(path){
+
+const {data}=client.storage
+.from("files")
+.getPublicUrl(path);
+
+window.open(data.publicUrl,"_blank");
+
+}
+
 async function deleteFile(path){
 
 if(!confirm("Datei löschen?")) return;
@@ -359,3 +368,4 @@ loadFiles();
 
 </body>
 </html>
+

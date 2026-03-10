@@ -1,8 +1,11 @@
 <!DOCTYPE html>
 <html lang="de">
+
 <head>
+
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
 <title>My Cloud</title>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
@@ -20,7 +23,7 @@ header{
 background:#1e293b;
 padding:16px;
 text-align:center;
-font-size:20px;
+font-size:22px;
 font-weight:bold;
 }
 
@@ -43,6 +46,26 @@ margin-bottom:20px;
 background:#1e293b;
 }
 
+.buttons{
+display:flex;
+gap:10px;
+margin-bottom:20px;
+}
+
+button{
+border:none;
+padding:8px 14px;
+border-radius:8px;
+cursor:pointer;
+font-weight:600;
+}
+
+.upload{background:#3b82f6;color:white;}
+.folder{background:#8b5cf6;color:white;}
+.download{background:#22c55e;color:black;}
+.copy{background:#3b82f6;color:white;}
+.delete{background:#ef4444;color:white;}
+
 .file{
 display:flex;
 justify-content:space-between;
@@ -53,23 +76,12 @@ border-radius:10px;
 margin-bottom:10px;
 }
 
-button{
-border:none;
-padding:6px 10px;
-border-radius:8px;
-cursor:pointer;
-}
-
-.download{background:#22c55e;color:black;}
-.delete{background:#ef4444;color:white;}
-.copy{background:#3b82f6;color:white;}
-
 .progress{
 height:6px;
 background:#334155;
 border-radius:4px;
 overflow:hidden;
-margin-top:5px;
+margin-top:4px;
 }
 
 .bar{
@@ -86,9 +98,14 @@ align-items:flex-start;
 gap:6px;
 }
 
+.buttons{
+flex-direction:column;
+}
+
 }
 
 </style>
+
 </head>
 
 <body>
@@ -98,14 +115,25 @@ gap:6px;
 <div class="container">
 
 <div class="dropzone" id="dropzone">
-Drag & Drop Dateien oder Ordner hier<br>
-oder klicken zum auswählen
+Drag & Drop Dateien hier
+</div>
+
+<div class="buttons">
+
+<button class="upload" onclick="fileInput.click()">
+Dateien hochladen
+</button>
+
+<button class="folder" onclick="folderInput.click()">
+Ordner hochladen
+</button>
+
 </div>
 
 <input type="file" id="fileInput" multiple hidden>
 <input type="file" id="folderInput" webkitdirectory multiple hidden>
 
-<div id="progress"></div>
+<div id="progressContainer"></div>
 
 <h3>Dateien</h3>
 
@@ -124,7 +152,13 @@ const dropzone=document.getElementById("dropzone");
 const fileInput=document.getElementById("fileInput");
 const folderInput=document.getElementById("folderInput");
 
-dropzone.onclick=()=>fileInput.click();
+fileInput.addEventListener("change",(e)=>{
+uploadFiles(e.target.files);
+});
+
+folderInput.addEventListener("change",(e)=>{
+uploadFolder(e.target.files);
+});
 
 dropzone.addEventListener("dragover",(e)=>{
 e.preventDefault();
@@ -132,18 +166,10 @@ e.preventDefault();
 
 dropzone.addEventListener("drop",(e)=>{
 e.preventDefault();
-handleFiles(e.dataTransfer.files);
+uploadFiles(e.dataTransfer.files);
 });
 
-fileInput.addEventListener("change",(e)=>{
-handleFiles(e.target.files);
-});
-
-folderInput.addEventListener("change",(e)=>{
-uploadFolder(e.target.files);
-});
-
-async function handleFiles(files){
+async function uploadFiles(files){
 
 for(const file of files){
 
@@ -184,7 +210,7 @@ ${path}
 </div>
 `;
 
-document.getElementById("progress").appendChild(progress);
+document.getElementById("progressContainer").appendChild(progress);
 
 const bar=progress.querySelector(".bar");
 
@@ -213,7 +239,6 @@ list.innerHTML="";
 data.forEach(file=>{
 
 const div=document.createElement("div");
-
 div.className="file";
 
 div.innerHTML=`
@@ -281,4 +306,6 @@ loadFiles();
 </script>
 
 </body>
+
 </html>
+

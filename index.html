@@ -64,8 +64,7 @@ button{border:none;padding:8px 12px;border-radius:8px;cursor:pointer;font-weight
 <script>
 const supabaseUrl="https://tsuboribhcsporomvjeu.supabase.co";
 const supabaseKey="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRzdWJvcmliaGNzcG9yb212amV1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzMxMTc1MjQsImV4cCI6MjA4ODY5MzUyNH0.GMWCUbfjiMb_HMM5JG38ZvaB7qBh_tfFoGDE6zEduJ0";
-
-const client = supabase.createClient(supabaseUrl, supabaseKey);
+const client=supabase.createClient(supabaseUrl,supabaseKey);
 let currentPath="";
 
 // --- LOGIN ---
@@ -77,18 +76,13 @@ async function login(){
   else{initCloud();}
 }
 
-// Enter-Taste Login
-document.getElementById("password").addEventListener("keypress", function(e){
-  if(e.key === "Enter"){login();}
-});
-
 async function logout(){
   await client.auth.signOut();
   location.reload();
 }
 
 async function checkSession(){
-  const {data} = await client.auth.getSession();
+  const {data}=await client.auth.getSession();
   if(data.session){initCloud();}
 }
 
@@ -109,12 +103,12 @@ const dropzone=document.getElementById("dropzone");
 const fileInput=document.getElementById("fileInput");
 const folderInput=document.getElementById("folderInput");
 
-fileInput.addEventListener("change", e => uploadFiles(e.target.files));
-folderInput.addEventListener("change", e => uploadFolder(e.target.files));
+fileInput.addEventListener("change",e=>uploadFiles(e.target.files));
+folderInput.addEventListener("change",e=>uploadFolder(e.target.files));
 
-dropzone.addEventListener("dragover", e=>{e.preventDefault(); dropzone.classList.add("hover");});
-dropzone.addEventListener("dragleave", e=>{dropzone.classList.remove("hover");});
-dropzone.addEventListener("drop", e=>{
+dropzone.addEventListener("dragover",e=>{e.preventDefault();dropzone.classList.add("hover");});
+dropzone.addEventListener("dragleave",e=>{dropzone.classList.remove("hover");});
+dropzone.addEventListener("drop",e=>{
   e.preventDefault();
   dropzone.classList.remove("hover");
   uploadFiles(e.dataTransfer.files);
@@ -122,9 +116,8 @@ dropzone.addEventListener("drop", e=>{
 
 async function uploadFiles(files){
   for(const file of files){
-    let {data:{user}} = await client.auth.getUser();
-    let folder = user?.user_metadata?.folder || "";
-    let path = folder + "/" + currentPath + file.name;
+    let {data:{user}}=await client.auth.getUser();
+    let path=(user?.user_metadata?.folder || "") + "/" + currentPath + file.name;
     path=path.replace(/\s+/g,"_").replace(/[^a-zA-Z0-9_\-\/\.]/g,"");
     await uploadFile(file,path);
   }
@@ -133,9 +126,8 @@ async function uploadFiles(files){
 
 async function uploadFolder(files){
   for(const file of files){
-    let {data:{user}} = await client.auth.getUser();
-    let folder = user?.user_metadata?.folder || "";
-    let path = folder + "/" + currentPath + (file.webkitRelativePath||file.name);
+    let {data:{user}}=await client.auth.getUser();
+    let path=(user?.user_metadata?.folder || "") + "/" + currentPath + (file.webkitRelativePath||file.name);
     path=path.replace(/\s+/g,"_").replace(/[^a-zA-Z0-9_\-\/\.]/g,"");
     await uploadFile(file,path);
   }
@@ -156,72 +148,64 @@ async function uploadFile(file,path){
 // --- FILE LIST ---
 async function loadFiles(){
   updatePath();
-  const {data:{user}} = await client.auth.getUser();
-  const isAdmin = user?.user_metadata?.role === "admin";
+  const {data:{user}}=await client.auth.getUser();
+  const isAdmin=user?.user_metadata?.role==="admin";
+  let folderPrefix = "";
+  if(!isAdmin) folderPrefix = user?.user_metadata?.folder + "/";
 
-  const list = document.getElementById("fileList");
+  const list=document.getElementById("fileList");
   list.innerHTML="";
 
   // Zurück-Button
   if(currentPath!=""){
-    const up = document.createElement("div");
+    const up=document.createElement("div");
     up.className="file folder";
     up.innerText="⬅️ Zurück";
-    up.onclick = ()=>{
-      currentPath = currentPath.split("/").slice(0,-2).join("/");
+    up.onclick=()=>{
+      currentPath=currentPath.split("/").slice(0,-2).join("/");
       if(currentPath!="") currentPath+="/";
       loadFiles();
     };
     list.appendChild(up);
   }
 
-  // Alle Items auflisten
-  const {data:allItems, error} = await client.storage.from("files").list("", {limit:1000});
+  // 1️⃣ Ordnernamen für Benutzer + gemeinsamer Ordner „Familie“
+  const {data,error}=await client.storage.from("files").list(folderPrefix + currentPath,{limit:1000});
   if(error){console.error(error); return;}
 
-  // Ordner im aktuellen Pfad sammeln
   const folders = new Set();
-  allItems.forEach(item=>{
-    let path = item.name;
-    if(currentPath && !path.startsWith(currentPath)) return;
-    let relativePath = path.slice(currentPath.length);
-    let segments = relativePath.split("/");
-    if(segments.length > 1) folders.add(segments[0]);
+  data.forEach(item=>{
+    const parts = item.name.split("/");
+    if(parts.length>1) folders.add(parts[0]); // erstes Segment = Ordner
   });
 
-  // Benutzerordner sichtbar machen
-  if(!isAdmin && user?.user_metadata?.folder && currentPath=="") folders.add(user.user_metadata.folder);
+  // Gemeinsamer Ordner „Familie“ immer hinzufügen, falls leer
+  if(!folders.has("Familie") && !isAdmin) folders.add("Familie");
 
-  // Gemeinsamer Ordner „Familie“
-  if(currentPath=="" && !folders.has("Familie")) folders.add("Familie");
-
-  // Ordner rendern
+  // Ordner darstellen
   folders.forEach(folder=>{
-    const div=document.createElement("div");
+    const div = document.createElement("div");
     div.className="file folder";
     div.innerText="📂 "+folder;
     div.onclick=()=>{
-      currentPath = currentPath + folder + "/";
+      currentPath = folder + "/";
       loadFiles();
     };
     list.appendChild(div);
   });
 
-  // Dateien direkt im aktuellen Path rendern
-  allItems.forEach(item=>{
-    let path = item.name;
-    if(currentPath!="" && !path.startsWith(currentPath)) return;
-    let relativePath = path.slice(currentPath.length);
-    if(!relativePath.includes("/")){ // Datei direkt in diesem Ordner
-      const div = document.createElement("div");
+  // Dateien darstellen
+  data.forEach(item=>{
+    if(item.id){
+      const div=document.createElement("div");
       div.className="file";
       div.innerHTML=`
-        <span>${relativePath}</span>
+        <span>${item.name}</span>
         <div>
-          <button class="download" onclick="downloadFile('${item.name}')">Download</button>
-          <button class="copy" onclick="copyLink('${item.name}')">Link</button>
-          <button class="open" onclick="openFile('${item.name}')">Öffnen</button>
-          <button class="delete" onclick="deleteFile('${item.name}')">Löschen</button>
+          <button class="download" onclick="downloadFile('${folderPrefix+currentPath+item.name}')">Download</button>
+          <button class="copy" onclick="copyLink('${folderPrefix+currentPath+item.name}')">Link</button>
+          <button class="open" onclick="openFile('${folderPrefix+currentPath+item.name}')">Öffnen</button>
+          <button class="delete" onclick="deleteFile('${folderPrefix+currentPath+item.name}')">Löschen</button>
         </div>
       `;
       list.appendChild(div);
@@ -231,19 +215,19 @@ async function loadFiles(){
 
 // --- PRIVATE DOWNLOAD ---
 async function downloadFile(path){
-  const {data,error} = await client.storage.from("files").createSignedUrl(path,60);
+  const {data,error}=await client.storage.from("files").createSignedUrl(path,60);
   if(error){alert(error.message);return;}
   window.open(data.signedUrl);
 }
 
 async function openFile(path){
-  const {data,error} = await client.storage.from("files").createSignedUrl(path,60);
+  const {data,error}=await client.storage.from("files").createSignedUrl(path,60);
   if(error){alert(error.message);return;}
   window.open(data.signedUrl,"_blank");
 }
 
 async function copyLink(path){
-  const {data,error} = await client.storage.from("files").createSignedUrl(path,300);
+  const {data,error}=await client.storage.from("files").createSignedUrl(path,300);
   if(error){alert(error.message);return;}
   navigator.clipboard.writeText(data.signedUrl);
   alert("Link kopiert");

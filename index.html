@@ -65,6 +65,7 @@ button{border:none;padding:6px 10px;border-radius:6px;cursor:pointer;font-weight
 <script>
 const supabaseUrl="https://tsuboribhcsporomvjeu.supabase.co";
 const supabaseKey="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRzdWJvcmliaGNzcG9yb212amV1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzMxMTc1MjQsImV4cCI6MjA4ODY5MzUyNH0.GMWCUbfjiMb_HMM5JG38ZvaB7qBh_tfFoGDE6zEduJ0";
+
 const client = supabase.createClient(supabaseUrl,supabaseKey);
 let currentPath="";
 
@@ -189,10 +190,10 @@ async function renameFolder(oldName,newName){
   for(const file of files){
     const oldPath=currentPath+oldName+'/'+file.name;
     const newPath=currentPath+newName+'/'+file.name;
-    // Upload copy
+    // Datei kopieren
     const {data} = await client.storage.from('files').download(oldPath);
     await client.storage.from('files').upload(newPath,data,{upsert:true});
-    // Lösche alte Datei
+    // Alte Datei löschen
     await client.storage.from('files').remove([oldPath]);
   }
   loadFiles();
@@ -203,9 +204,11 @@ async function downloadFolderAsZip(folderName){
   if(error){alert(error.message); return;}
   const zip = new JSZip();
   for(const file of files){
-    const {data}=await client.storage.from('files').download(currentPath+folderName+'/'+file.name);
+    const {data} = await client.storage.from('files').download(currentPath+folderName+'/'+file.name);
     const blob = await data.blob();
-    zip.file(file.name, blob);
+    // Relative Pfade für Unterordner
+    const relativePath = file.name.replace(folderName+"/","");
+    zip.file(relativePath, blob);
   }
   const content = await zip.generateAsync({type:"blob"});
   const a = document.createElement("a");

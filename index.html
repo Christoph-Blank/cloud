@@ -412,6 +412,13 @@ document.getElementById("folderInput")?.addEventListener("change",(e)=>{
 uploadFolder(e.target.files);
 });
 
+// --- Enter im Passwortfeld aktiviert Login ---
+document.getElementById("password").addEventListener("keypress", function(e){
+    if(e.key === "Enter"){
+        login();
+    }
+});
+
 checkSession();
 
 </script>

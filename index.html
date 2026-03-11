@@ -226,10 +226,16 @@ if(item.id==null){
 
 div.classList.add("folder");
 
+let deleteButton="";
+
+if(currentPath !== ""){
+deleteButton=`<button class="delete" onclick="event.stopPropagation();deleteFolder('${currentPath+item.name}/')">Löschen</button>`;
+}
+
 div.innerHTML=`
 <span>📂 ${item.name}</span>
 <div>
-<button class="delete" onclick="event.stopPropagation();deleteFolder('${currentPath+item.name}/')">Löschen</button>
+${deleteButton}
 </div>
 `;
 

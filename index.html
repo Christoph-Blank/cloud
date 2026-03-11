@@ -64,6 +64,7 @@ button{border:none;padding:8px 12px;border-radius:8px;cursor:pointer;font-weight
 <script>
 const supabaseUrl="https://tsuboribhcsporomvjeu.supabase.co";
 const supabaseKey="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRzdWJvcmliaGNzcG9yb212amV1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzMxMTc1MjQsImV4cCI6MjA4ODY5MzUyNH0.GMWCUbfjiMb_HMM5JG38ZvaB7qBh_tfFoGDE6zEduJ0";
+
 const client = supabase.createClient(supabaseUrl, supabaseKey);
 let currentPath="";
 
@@ -174,58 +175,56 @@ async function loadFiles(){
     list.appendChild(up);
   }
 
-  // Ordnerliste
+  // Alle Items auflisten
   const {data:allItems, error} = await client.storage.from("files").list("", {limit:1000});
   if(error){console.error(error); return;}
 
+  // Ordner im aktuellen Pfad sammeln
   const folders = new Set();
-
   allItems.forEach(item=>{
-    const parts = item.name.split("/");
-    if(parts.length>1) folders.add(parts[0]);
-    else if(currentPath=="") folders.add(parts[0]);
+    let path = item.name;
+    if(currentPath && !path.startsWith(currentPath)) return;
+    let relativePath = path.slice(currentPath.length);
+    let segments = relativePath.split("/");
+    if(segments.length > 1) folders.add(segments[0]);
   });
 
   // Benutzerordner sichtbar machen
-  if(!isAdmin && user?.user_metadata?.folder) folders.add(user.user_metadata.folder);
+  if(!isAdmin && user?.user_metadata?.folder && currentPath=="") folders.add(user.user_metadata.folder);
 
   // Gemeinsamer Ordner „Familie“
-  if(!folders.has("Familie")) folders.add("Familie");
+  if(currentPath=="" && !folders.has("Familie")) folders.add("Familie");
 
   // Ordner rendern
   folders.forEach(folder=>{
-    // nur im aktuellen Path
-    if(currentPath=="" || folder==currentPath.replace("/","")){
-      const div=document.createElement("div");
-      div.className="file folder";
-      div.innerText="📂 "+folder;
-      div.onclick=()=>{
-        currentPath=folder+"/";
-        loadFiles();
-      };
-      list.appendChild(div);
-    }
+    const div=document.createElement("div");
+    div.className="file folder";
+    div.innerText="📂 "+folder;
+    div.onclick=()=>{
+      currentPath = currentPath + folder + "/";
+      loadFiles();
+    };
+    list.appendChild(div);
   });
 
-  // Dateien im aktuellen Path rendern
+  // Dateien direkt im aktuellen Path rendern
   allItems.forEach(item=>{
-    if(item.id){
-      let itemPathParts = item.name.split("/");
-      let basePath = itemPathParts.slice(0,-1).join("/") + "/";
-      if(basePath == currentPath){
-        const div = document.createElement("div");
-        div.className="file";
-        div.innerHTML=`
-          <span>${itemPathParts[itemPathParts.length-1]}</span>
-          <div>
-            <button class="download" onclick="downloadFile('${item.name}')">Download</button>
-            <button class="copy" onclick="copyLink('${item.name}')">Link</button>
-            <button class="open" onclick="openFile('${item.name}')">Öffnen</button>
-            <button class="delete" onclick="deleteFile('${item.name}')">Löschen</button>
-          </div>
-        `;
-        list.appendChild(div);
-      }
+    let path = item.name;
+    if(currentPath!="" && !path.startsWith(currentPath)) return;
+    let relativePath = path.slice(currentPath.length);
+    if(!relativePath.includes("/")){ // Datei direkt in diesem Ordner
+      const div = document.createElement("div");
+      div.className="file";
+      div.innerHTML=`
+        <span>${relativePath}</span>
+        <div>
+          <button class="download" onclick="downloadFile('${item.name}')">Download</button>
+          <button class="copy" onclick="copyLink('${item.name}')">Link</button>
+          <button class="open" onclick="openFile('${item.name}')">Öffnen</button>
+          <button class="delete" onclick="deleteFile('${item.name}')">Löschen</button>
+        </div>
+      `;
+      list.appendChild(div);
     }
   });
 }

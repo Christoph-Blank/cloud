@@ -64,7 +64,7 @@ button{border:none;padding:6px 10px;border-radius:6px;cursor:pointer;font-weight
 
 <script>
 const supabaseUrl="https://tsuboribhcsporomvjeu.supabase.co";
-const supabaseKey="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRzdWJvcmliaGNzcG9yb212amV1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzMxMTc1MjQsImV4cCI6MjA4ODY5MzUyNH0.GMWCUbfjiMb_HMM5JG38ZvaB7qBh_tfFoGDE6zEduJ0";
+const supabaseKey="YOUR_ANON_KEY_HERE"; // ersetzt durch deinen Key
 const client = supabase.createClient(supabaseUrl,supabaseKey);
 let currentPath="";
 
@@ -77,7 +77,6 @@ async function login(){
   else{initCloud();}
 }
 document.getElementById("password").addEventListener("keypress", e=>{if(e.key==="Enter") login();});
-
 async function logout(){await client.auth.signOut(); location.reload();}
 async function checkSession(){const {data}=await client.auth.getSession(); if(data.session) initCloud();}
 function initCloud(){document.getElementById("loginView").style.display="none"; document.getElementById("cloudView").style.display="block"; loadFiles();}
@@ -124,6 +123,7 @@ async function loadFiles(){
     const div=document.createElement("div");
     div.className="file";
     if(item.id==null){
+      // Folder
       div.classList.add("folder");
       div.innerHTML=`<span>📂 ${item.name}</span>
         <div>
@@ -132,6 +132,7 @@ async function loadFiles(){
         </div>`;
       div.onclick=()=>{currentPath+=item.name+"/"; loadFiles();};
     }else{
+      // File
       div.innerHTML=`<span>${item.name}</span>
         <div>
           <button class="download" onclick="downloadFile('${currentPath+item.name}')">Download</button>
@@ -144,7 +145,7 @@ async function loadFiles(){
   });
 }
 
-// --- PRIVATE FILE ACTIONS ---
+// --- FILE ACTIONS ---
 async function downloadFile(path){
   const {data,error}=await client.storage.from("files").download(path);
   if(error){alert(error.message); return;}
@@ -183,12 +184,16 @@ function renameFolderPrompt(oldName){
 }
 
 async function renameFolder(oldName,newName){
-  const {data: files, error}=await client.storage.from('files').list(currentPath+oldName,{limit:1000, recursive:true});
+  const {data: files,error}=await client.storage.from('files').list(currentPath+oldName,{limit:1000, recursive:true});
   if(error){alert(error.message); return;}
   for(const file of files){
     const oldPath=currentPath+oldName+'/'+file.name;
     const newPath=currentPath+newName+'/'+file.name;
-    await client.storage.from('files').move(oldPath,newPath); // oder Upload+Delete falls move nicht verfügbar
+    // Upload copy
+    const {data} = await client.storage.from('files').download(oldPath);
+    await client.storage.from('files').upload(newPath,data,{upsert:true});
+    // Lösche alte Datei
+    await client.storage.from('files').remove([oldPath]);
   }
   loadFiles();
 }
@@ -196,22 +201,21 @@ async function renameFolder(oldName,newName){
 async function downloadFolderAsZip(folderName){
   const {data: files, error}=await client.storage.from('files').list(currentPath+folderName,{limit:1000, recursive:true});
   if(error){alert(error.message); return;}
-  const zip=new JSZip();
+  const zip = new JSZip();
   for(const file of files){
     const {data}=await client.storage.from('files').download(currentPath+folderName+'/'+file.name);
-    const blob=await data.blob();
-    zip.file(file.name,blob);
+    const blob = await data.blob();
+    zip.file(file.name, blob);
   }
-  const content=await zip.generateAsync({type:"blob"});
-  const a=document.createElement("a");
-  a.href=URL.createObjectURL(content);
-  a.download=folderName+".zip";
+  const content = await zip.generateAsync({type:"blob"});
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(content);
+  a.download = folderName + ".zip";
   document.body.appendChild(a);
   a.click();
   a.remove();
 }
 
-// --- INIT ---
 checkSession();
 </script>
 </body>

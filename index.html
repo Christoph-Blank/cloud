@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>My Secure Cloud</title>
+<title>Familien-Cloud</title>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <style>
 body{font-family:system-ui;background:#3f4f61;color:white;margin:0;}
@@ -30,7 +30,7 @@ button{border:none;padding:8px 12px;border-radius:8px;cursor:pointer;font-weight
 </style>
 </head>
 <body>
-<header>☁️ My Secure Cloud</header>
+<header>☁️ Familien-Cloud</header>
 <div class="container">
 
 <!-- LOGIN -->
@@ -149,9 +149,9 @@ async function uploadFile(file,path){
 async function loadFiles(){
   updatePath();
   const {data:{user}}=await client.auth.getUser();
-  let folderPrefix=user?.user_metadata?.folder || "";
   const isAdmin=user?.user_metadata?.role==="admin";
-  if(isAdmin){folderPrefix="";}
+  let folderPrefix = "";
+  if(!isAdmin) folderPrefix = user?.user_metadata?.folder + "/";
 
   const list=document.getElementById("fileList");
   list.innerHTML="";
@@ -169,24 +169,36 @@ async function loadFiles(){
     list.appendChild(up);
   }
 
-  // Alle Items auflisten
-  const {data,error}=await client.storage.from("files").list(folderPrefix + currentPath,{limit:100});
+  // 1️⃣ Ordnernamen für Benutzer + gemeinsamer Ordner „Familie“
+  const {data,error}=await client.storage.from("files").list(folderPrefix + currentPath,{limit:1000});
   if(error){console.error(error); return;}
 
+  const folders = new Set();
   data.forEach(item=>{
-    const div=document.createElement("div");
-    div.className="file";
+    const parts = item.name.split("/");
+    if(parts.length>1) folders.add(parts[0]); // erstes Segment = Ordner
+  });
 
-    // Ordner
-    if(!item.id){
-      div.classList.add("folder");
-      div.innerText=`📂 ${item.name}`;
-      div.onclick=()=>{
-        currentPath+=item.name+"/";
-        loadFiles();
-      };
-    } else {
-      // Datei
+  // Gemeinsamer Ordner „Familie“ immer hinzufügen, falls leer
+  if(!folders.has("Familie") && !isAdmin) folders.add("Familie");
+
+  // Ordner darstellen
+  folders.forEach(folder=>{
+    const div = document.createElement("div");
+    div.className="file folder";
+    div.innerText="📂 "+folder;
+    div.onclick=()=>{
+      currentPath = folder + "/";
+      loadFiles();
+    };
+    list.appendChild(div);
+  });
+
+  // Dateien darstellen
+  data.forEach(item=>{
+    if(item.id){
+      const div=document.createElement("div");
+      div.className="file";
       div.innerHTML=`
         <span>${item.name}</span>
         <div>
@@ -196,8 +208,8 @@ async function loadFiles(){
           <button class="delete" onclick="deleteFile('${folderPrefix+currentPath+item.name}')">Löschen</button>
         </div>
       `;
+      list.appendChild(div);
     }
-    list.appendChild(div);
   });
 }
 

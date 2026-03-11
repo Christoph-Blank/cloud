@@ -33,7 +33,6 @@ button{border:none;padding:8px 12px;border-radius:8px;cursor:pointer;font-weight
 <header>☁️ Familien-Cloud</header>
 <div class="container">
 
-<!-- LOGIN -->
 <div id="loginView">
 <h3>Login</h3>
 <input id="email" placeholder="Email">
@@ -42,7 +41,6 @@ button{border:none;padding:8px 12px;border-radius:8px;cursor:pointer;font-weight
 <p id="loginError"></p>
 </div>
 
-<!-- CLOUD -->
 <div id="cloudView" style="display:none">
 <button class="logout" onclick="logout()">Logout</button>
 <div class="path" id="path"></div>
@@ -75,6 +73,11 @@ async function login(){
   if(error){document.getElementById("loginError").innerText=error.message;}
   else{initCloud();}
 }
+
+// Enter-Taste Login
+document.getElementById("password").addEventListener("keypress", function(e){
+  if(e.key === "Enter"){login();}
+});
 
 async function logout(){
   await client.auth.signOut();
@@ -169,22 +172,28 @@ async function loadFiles(){
     list.appendChild(up);
   }
 
-  // 1️⃣ Ordnernamen für Benutzer + gemeinsamer Ordner „Familie“
+  // Alle Items auflisten
   const {data,error}=await client.storage.from("files").list(folderPrefix + currentPath,{limit:1000});
   if(error){console.error(error); return;}
 
   const folders = new Set();
+
   data.forEach(item=>{
     const parts = item.name.split("/");
     if(parts.length>1) folders.add(parts[0]); // erstes Segment = Ordner
   });
 
-  // Gemeinsamer Ordner „Familie“ immer hinzufügen, falls leer
+  // Eigenen Benutzerordner anzeigen, falls leer
+  if(!isAdmin && user?.user_metadata?.folder && !folders.has(user.user_metadata.folder)){
+    folders.add(user.user_metadata.folder);
+  }
+
+  // Gemeinsamer Ordner „Familie“
   if(!folders.has("Familie") && !isAdmin) folders.add("Familie");
 
-  // Ordner darstellen
+  // Ordner rendern
   folders.forEach(folder=>{
-    const div = document.createElement("div");
+    const div=document.createElement("div");
     div.className="file folder";
     div.innerText="📂 "+folder;
     div.onclick=()=>{
@@ -194,7 +203,7 @@ async function loadFiles(){
     list.appendChild(div);
   });
 
-  // Dateien darstellen
+  // Dateien rendern
   data.forEach(item=>{
     if(item.id){
       const div=document.createElement("div");

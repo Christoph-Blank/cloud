@@ -143,16 +143,15 @@ async function loadFiles(){
   const {data:allItems,error}=await client.storage.from("files").list("",{limit:1000});
   if(error){console.error(error); return;}
 
-  // Ordner direkt unter currentPath
+  // --- Ordner ---
   const folders=new Set();
   allItems.forEach(item=>{
     if(!item.name.startsWith(currentPath)) return;
     let relative=item.name.slice(currentPath.length);
-    let segments=relative.split("/");
-    if(segments.length>1) folders.add(segments[0]);
+    let seg=relative.split("/");
+    if(seg.length>1) folders.add(seg[0]);
   });
 
-  // Benutzerordner und Familienordner
   if(!isAdmin && user?.user_metadata?.folder && currentPath=="") folders.add(user.user_metadata.folder);
   if(currentPath=="" && !folders.has("Familie")) folders.add("Familie");
 
@@ -164,7 +163,7 @@ async function loadFiles(){
     list.appendChild(div);
   });
 
-  // Dateien direkt im currentPath
+  // --- Dateien ---
   allItems.forEach(item=>{
     if(!item.name.startsWith(currentPath)) return;
     let relative=item.name.slice(currentPath.length);

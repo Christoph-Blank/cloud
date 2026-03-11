@@ -1,53 +1,145 @@
 <!DOCTYPE html>
 <html lang="de">
+
 <head>
+
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Familien-Cloud</title>
+
+<title>My Secure Cloud</title>
+
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
 <style>
-body{font-family:system-ui;background:#3f4f61;color:white;margin:0;}
-header{background:#526377;padding:18px;text-align:center;font-size:22px;font-weight:bold;}
-.container{max-width:900px;margin:auto;padding:20px;}
-input{padding:10px;border-radius:8px;border:none;margin-bottom:10px;width:100%;}
-button{border:none;padding:8px 12px;border-radius:8px;cursor:pointer;font-weight:600;margin:3px;}
+
+body{
+font-family:system-ui;
+background:#334155;
+color:white;
+margin:0;
+}
+
+header{
+background:#475569;
+padding:18px;
+text-align:center;
+font-size:22px;
+font-weight:bold;
+}
+
+.container{
+max-width:900px;
+margin:auto;
+padding:20px;
+}
+
+input{
+padding:10px;
+border-radius:8px;
+border:none;
+margin-bottom:10px;
+width:100%;
+}
+
+button{
+border:none;
+padding:8px 12px;
+border-radius:8px;
+cursor:pointer;
+font-weight:600;
+margin:3px;
+}
+
 .login{background:#3b82f6;color:white;}
 .logout{background:#ef4444;color:white;}
+
 .upload{background:#3b82f6;color:white;}
 .folderbtn{background:#8b5cf6;color:white;}
 .download{background:#22c55e;color:black;}
 .copy{background:#3b82f6;color:white;}
 .open{background:#0ea5e9;color:white;}
 .delete{background:#ef4444;color:white;}
-.path{margin-bottom:15px;color:#e2e8f0;}
-.file{display:flex;justify-content:space-between;align-items:center;background:#526377;padding:10px;border-radius:10px;margin-bottom:10px;}
-.folder{cursor:pointer;font-weight:600;}
-.dropzone{border:2px dashed #60a5fa;border-radius:12px;padding:35px;text-align:center;cursor:pointer;margin-bottom:20px;background:#526377;}
-.dropzone.hover{background:#64748b;}
-.progress{height:6px;background:#64748b;border-radius:4px;overflow:hidden;margin-top:4px;}
-.bar{height:100%;width:0%;background:#22c55e;transition:width 0.3s ease;}
-@media(max-width:600px){.file{flex-direction:column;align-items:flex-start;gap:6px;}}
+
+.path{
+margin-bottom:15px;
+color:#e2e8f0;
+}
+
+.file{
+display:flex;
+justify-content:space-between;
+align-items:center;
+background:#475569;
+padding:10px;
+border-radius:10px;
+margin-bottom:10px;
+}
+
+.folder{
+cursor:pointer;
+font-weight:600;
+}
+
+.dropzone{
+border:2px dashed #60a5fa;
+border-radius:12px;
+padding:35px;
+text-align:center;
+cursor:pointer;
+margin-bottom:20px;
+background:#475569;
+}
+
+.progress{
+height:6px;
+background:#64748b;
+border-radius:4px;
+overflow:hidden;
+margin-top:4px;
+}
+
+.bar{
+height:100%;
+width:0%;
+background:#22c55e;
+}
+
 </style>
+
 </head>
+
 <body>
-<header>☁️ Familien-Cloud</header>
+
+<header>☁️ My Secure Cloud</header>
+
 <div class="container">
 
 <!-- LOGIN -->
 <div id="loginView">
+
 <h3>Login</h3>
+
 <input id="email" placeholder="Email">
+
 <input id="password" type="password" placeholder="Passwort">
+
 <button class="login" onclick="login()">Login</button>
+
 <p id="loginError"></p>
+
 </div>
 
 <!-- CLOUD -->
 <div id="cloudView" style="display:none">
+
 <button class="logout" onclick="logout()">Logout</button>
+
 <div class="path" id="path"></div>
 
-<div class="dropzone" id="dropzone">Drag & Drop Dateien hier</div>
+<div class="dropzone" id="dropzone">
+Drag & Drop Dateien hier
+</div>
+
 <button class="upload" onclick="fileInput.click()">Dateien hochladen</button>
 <button class="folderbtn" onclick="folderInput.click()">Ordner hochladen</button>
 
@@ -55,207 +147,273 @@ button{border:none;padding:8px 12px;border-radius:8px;cursor:pointer;font-weight
 <input type="file" id="folderInput" webkitdirectory multiple hidden>
 
 <div id="progressContainer"></div>
+
 <h3>Dateien</h3>
+
 <div id="fileList"></div>
+
 </div>
 
 </div>
 
 <script>
+
 const supabaseUrl="https://tsuboribhcsporomvjeu.supabase.co";
 const supabaseKey="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRzdWJvcmliaGNzcG9yb212amV1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzMxMTc1MjQsImV4cCI6MjA4ODY5MzUyNH0.GMWCUbfjiMb_HMM5JG38ZvaB7qBh_tfFoGDE6zEduJ0";
 
-const client = supabase.createClient(supabaseUrl, supabaseKey);
+const client=supabase.createClient(supabaseUrl,supabaseKey);
+
 let currentPath="";
 
-// --- LOGIN ---
 async function login(){
-  const email=document.getElementById("email").value;
-  const password=document.getElementById("password").value;
-  const {error}=await client.auth.signInWithPassword({email,password});
-  if(error){document.getElementById("loginError").innerText=error.message;}
-  else{initCloud();}
-}
 
-// Enter-Taste Login
-document.getElementById("password").addEventListener("keypress", function(e){
-  if(e.key === "Enter"){login();}
+const email=document.getElementById("email").value;
+const password=document.getElementById("password").value;
+
+const {error}=await client.auth.signInWithPassword({
+email,
+password
 });
 
+if(error){
+document.getElementById("loginError").innerText=error.message;
+}else{
+initCloud();
+}
+
+}
+
 async function logout(){
-  await client.auth.signOut();
-  location.reload();
+
+await client.auth.signOut();
+
+location.reload();
+
 }
 
 async function checkSession(){
-  const {data} = await client.auth.getSession();
-  if(data.session){initCloud();}
+
+const {data}=await client.auth.getSession();
+
+if(data.session){
+initCloud();
+}
+
 }
 
 function initCloud(){
-  document.getElementById("loginView").style.display="none";
-  document.getElementById("cloudView").style.display="block";
-  loadFiles();
+
+document.getElementById("loginView").style.display="none";
+document.getElementById("cloudView").style.display="block";
+
+loadFiles();
+
 }
 
-// --- PATH ---
 function updatePath(){
-  let text=currentPath==""?"/":"/"+currentPath;
-  document.getElementById("path").innerHTML=text;
+
+let text=currentPath=="" ? "/" : "/"+currentPath;
+
+document.getElementById("path").innerHTML=text;
+
 }
-
-// --- UPLOAD ---
-const dropzone=document.getElementById("dropzone");
-const fileInput=document.getElementById("fileInput");
-const folderInput=document.getElementById("folderInput");
-
-fileInput.addEventListener("change", e => uploadFiles(e.target.files));
-folderInput.addEventListener("change", e => uploadFolder(e.target.files));
-
-dropzone.addEventListener("dragover", e=>{e.preventDefault(); dropzone.classList.add("hover");});
-dropzone.addEventListener("dragleave", e=>{dropzone.classList.remove("hover");});
-dropzone.addEventListener("drop", e=>{
-  e.preventDefault();
-  dropzone.classList.remove("hover");
-  uploadFiles(e.dataTransfer.files);
-});
 
 async function uploadFiles(files){
-  for(const file of files){
-    let {data:{user}} = await client.auth.getUser();
-    let folder = user?.user_metadata?.folder || "";
-    let path = folder + "/" + currentPath + file.name;
-    path=path.replace(/\s+/g,"_").replace(/[^a-zA-Z0-9_\-\/\.]/g,"");
-    await uploadFile(file,path);
-  }
-  loadFiles();
+
+for(const file of files){
+
+let path=currentPath+file.name;
+
+await uploadFile(file,path);
+
+}
+
+loadFiles();
+
 }
 
 async function uploadFolder(files){
-  for(const file of files){
-    let {data:{user}} = await client.auth.getUser();
-    let folder = user?.user_metadata?.folder || "";
-    let path = folder + "/" + currentPath + (file.webkitRelativePath||file.name);
-    path=path.replace(/\s+/g,"_").replace(/[^a-zA-Z0-9_\-\/\.]/g,"");
-    await uploadFile(file,path);
-  }
-  loadFiles();
+
+for(const file of files){
+
+let path=currentPath+(file.webkitRelativePath || file.name);
+
+path=path.replace(/\s+/g,"_").replace(/[^a-zA-Z0-9_\-\/\.]/g,"");
+
+await uploadFile(file,path);
+
+}
+
+loadFiles();
+
 }
 
 async function uploadFile(file,path){
-  const progress=document.createElement("div");
-  progress.innerHTML=`${path}<div class="progress"><div class="bar"></div></div>`;
-  document.getElementById("progressContainer").appendChild(progress);
-  const bar=progress.querySelector(".bar");
-  const {error}=await client.storage.from("files").upload(path,file,{upsert:true});
-  bar.style.width="100%";
-  setTimeout(()=>progress.remove(),800);
-  if(error){alert(error.message);}
+
+const progress=document.createElement("div");
+
+progress.innerHTML=`
+${path}
+<div class="progress">
+<div class="bar"></div>
+</div>
+`;
+
+document.getElementById("progressContainer").appendChild(progress);
+
+const bar=progress.querySelector(".bar");
+
+const {error}=await client.storage
+.from("files")
+.upload(path,file,{upsert:true});
+
+bar.style.width="100%";
+
+setTimeout(()=>progress.remove(),800);
+
+if(error){
+alert(error.message);
 }
 
-// --- FILE LIST ---
+}
+
 async function loadFiles(){
-  updatePath();
-  const {data:{user}} = await client.auth.getUser();
-  const isAdmin = user?.user_metadata?.role === "admin";
 
-  const list = document.getElementById("fileList");
-  list.innerHTML="";
+updatePath();
 
-  // Zurück-Button
-  if(currentPath!=""){
-    const up = document.createElement("div");
-    up.className="file folder";
-    up.innerText="⬅️ Zurück";
-    up.onclick = ()=>{
-      currentPath = currentPath.split("/").slice(0,-2).join("/");
-      if(currentPath!="") currentPath+="/";
-      loadFiles();
-    };
-    list.appendChild(up);
-  }
+const {data}=await client.storage
+.from("files")
+.list(currentPath,{limit:100});
 
-  // Alle Items auflisten
-  const {data:allItems, error} = await client.storage.from("files").list("", {limit:1000});
-  if(error){console.error(error); return;}
+const list=document.getElementById("fileList");
 
-  // Ordner im aktuellen Pfad sammeln
-  const folders = new Set();
-  allItems.forEach(item=>{
-    let path = item.name;
-    if(currentPath && !path.startsWith(currentPath)) return;
-    let relativePath = path.slice(currentPath.length);
-    let segments = relativePath.split("/");
-    if(segments.length > 1) folders.add(segments[0]);
-  });
+list.innerHTML="";
 
-  // Benutzerordner sichtbar machen
-  if(!isAdmin && user?.user_metadata?.folder && currentPath=="") folders.add(user.user_metadata.folder);
+if(currentPath!=""){
 
-  // Gemeinsamer Ordner „Familie“
-  if(currentPath=="" && !folders.has("Familie")) folders.add("Familie");
+const up=document.createElement("div");
 
-  // Ordner rendern
-  folders.forEach(folder=>{
-    const div=document.createElement("div");
-    div.className="file folder";
-    div.innerText="📂 "+folder;
-    div.onclick=()=>{
-      currentPath = currentPath + folder + "/";
-      loadFiles();
-    };
-    list.appendChild(div);
-  });
+up.className="file folder";
 
-  // Dateien direkt im aktuellen Path rendern
-  allItems.forEach(item=>{
-    let path = item.name;
-    if(currentPath!="" && !path.startsWith(currentPath)) return;
-    let relativePath = path.slice(currentPath.length);
-    if(!relativePath.includes("/")){ // Datei direkt in diesem Ordner
-      const div = document.createElement("div");
-      div.className="file";
-      div.innerHTML=`
-        <span>${relativePath}</span>
-        <div>
-          <button class="download" onclick="downloadFile('${item.name}')">Download</button>
-          <button class="copy" onclick="copyLink('${item.name}')">Link</button>
-          <button class="open" onclick="openFile('${item.name}')">Öffnen</button>
-          <button class="delete" onclick="deleteFile('${item.name}')">Löschen</button>
-        </div>
-      `;
-      list.appendChild(div);
-    }
-  });
+up.innerHTML="⬅️ Zurück";
+
+up.onclick=()=>{
+
+currentPath=currentPath.split("/").slice(0,-2).join("/");
+
+if(currentPath!="") currentPath+="/";
+
+loadFiles();
+
+};
+
+list.appendChild(up);
+
 }
 
-// --- PRIVATE DOWNLOAD ---
-async function downloadFile(path){
-  const {data,error} = await client.storage.from("files").createSignedUrl(path,60);
-  if(error){alert(error.message);return;}
-  window.open(data.signedUrl);
+data.forEach(item=>{
+
+const div=document.createElement("div");
+
+div.className="file";
+
+if(item.id==null){
+
+div.classList.add("folder");
+
+div.innerHTML=`📂 ${item.name}`;
+
+div.onclick=()=>{
+
+currentPath+=item.name+"/";
+
+loadFiles();
+
+};
+
+}else{
+
+div.innerHTML=`
+
+<span>${item.name}</span>
+
+<div>
+
+<button class="download" onclick="downloadFile('${currentPath+item.name}')">Download</button>
+
+<button class="copy" onclick="copyLink('${currentPath+item.name}')">Link</button>
+
+<button class="open" onclick="openFile('${currentPath+item.name}')">Öffnen</button>
+
+<button class="delete" onclick="deleteFile('${currentPath+item.name}')">Löschen</button>
+
+</div>
+
+`;
+
 }
 
-async function openFile(path){
-  const {data,error} = await client.storage.from("files").createSignedUrl(path,60);
-  if(error){alert(error.message);return;}
-  window.open(data.signedUrl,"_blank");
+list.appendChild(div);
+
+});
+
 }
 
-async function copyLink(path){
-  const {data,error} = await client.storage.from("files").createSignedUrl(path,300);
-  if(error){alert(error.message);return;}
-  navigator.clipboard.writeText(data.signedUrl);
-  alert("Link kopiert");
+function downloadFile(path){
+
+const {data}=client.storage
+.from("files")
+.getPublicUrl(path);
+
+window.open(data.publicUrl);
+
+}
+
+function openFile(path){
+
+const {data}=client.storage
+.from("files")
+.getPublicUrl(path);
+
+window.open(data.publicUrl,"_blank");
+
+}
+
+function copyLink(path){
+
+const {data}=client.storage
+.from("files")
+.getPublicUrl(path);
+
+navigator.clipboard.writeText(data.publicUrl);
+
+alert("Link kopiert");
+
 }
 
 async function deleteFile(path){
-  if(!confirm("Datei löschen?")) return;
-  await client.storage.from("files").remove([path]);
-  loadFiles();
+
+if(!confirm("Datei löschen?")) return;
+
+await client.storage
+.from("files")
+.remove([path]);
+
+loadFiles();
+
 }
 
+document.getElementById("fileInput")?.addEventListener("change",(e)=>{
+uploadFiles(e.target.files);
+});
+
+document.getElementById("folderInput")?.addEventListener("change",(e)=>{
+uploadFolder(e.target.files);
+});
+
 checkSession();
+
 </script>
+
 </body>
 </html>

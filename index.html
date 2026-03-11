@@ -33,6 +33,7 @@ button{border:none;padding:8px 12px;border-radius:8px;cursor:pointer;font-weight
 <header>☁️ Familien-Cloud</header>
 <div class="container">
 
+<!-- LOGIN -->
 <div id="loginView">
 <h3>Login</h3>
 <input id="email" placeholder="Email">
@@ -41,6 +42,7 @@ button{border:none;padding:8px 12px;border-radius:8px;cursor:pointer;font-weight
 <p id="loginError"></p>
 </div>
 
+<!-- CLOUD -->
 <div id="cloudView" style="display:none">
 <button class="logout" onclick="logout()">Logout</button>
 <div class="path" id="path"></div>
@@ -62,7 +64,7 @@ button{border:none;padding:8px 12px;border-radius:8px;cursor:pointer;font-weight
 <script>
 const supabaseUrl="https://tsuboribhcsporomvjeu.supabase.co";
 const supabaseKey="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRzdWJvcmliaGNzcG9yb212amV1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzMxMTc1MjQsImV4cCI6MjA4ODY5MzUyNH0.GMWCUbfjiMb_HMM5JG38ZvaB7qBh_tfFoGDE6zEduJ0";
-const client=supabase.createClient(supabaseUrl,supabaseKey);
+const client = supabase.createClient(supabaseUrl, supabaseKey);
 let currentPath="";
 
 // --- LOGIN ---
@@ -85,7 +87,7 @@ async function logout(){
 }
 
 async function checkSession(){
-  const {data}=await client.auth.getSession();
+  const {data} = await client.auth.getSession();
   if(data.session){initCloud();}
 }
 
@@ -106,12 +108,12 @@ const dropzone=document.getElementById("dropzone");
 const fileInput=document.getElementById("fileInput");
 const folderInput=document.getElementById("folderInput");
 
-fileInput.addEventListener("change",e=>uploadFiles(e.target.files));
-folderInput.addEventListener("change",e=>uploadFolder(e.target.files));
+fileInput.addEventListener("change", e => uploadFiles(e.target.files));
+folderInput.addEventListener("change", e => uploadFolder(e.target.files));
 
-dropzone.addEventListener("dragover",e=>{e.preventDefault();dropzone.classList.add("hover");});
-dropzone.addEventListener("dragleave",e=>{dropzone.classList.remove("hover");});
-dropzone.addEventListener("drop",e=>{
+dropzone.addEventListener("dragover", e=>{e.preventDefault(); dropzone.classList.add("hover");});
+dropzone.addEventListener("dragleave", e=>{dropzone.classList.remove("hover");});
+dropzone.addEventListener("drop", e=>{
   e.preventDefault();
   dropzone.classList.remove("hover");
   uploadFiles(e.dataTransfer.files);
@@ -119,8 +121,9 @@ dropzone.addEventListener("drop",e=>{
 
 async function uploadFiles(files){
   for(const file of files){
-    let {data:{user}}=await client.auth.getUser();
-    let path=(user?.user_metadata?.folder || "") + "/" + currentPath + file.name;
+    let {data:{user}} = await client.auth.getUser();
+    let folder = user?.user_metadata?.folder || "";
+    let path = folder + "/" + currentPath + file.name;
     path=path.replace(/\s+/g,"_").replace(/[^a-zA-Z0-9_\-\/\.]/g,"");
     await uploadFile(file,path);
   }
@@ -129,8 +132,9 @@ async function uploadFiles(files){
 
 async function uploadFolder(files){
   for(const file of files){
-    let {data:{user}}=await client.auth.getUser();
-    let path=(user?.user_metadata?.folder || "") + "/" + currentPath + (file.webkitRelativePath||file.name);
+    let {data:{user}} = await client.auth.getUser();
+    let folder = user?.user_metadata?.folder || "";
+    let path = folder + "/" + currentPath + (file.webkitRelativePath||file.name);
     path=path.replace(/\s+/g,"_").replace(/[^a-zA-Z0-9_\-\/\.]/g,"");
     await uploadFile(file,path);
   }
@@ -151,92 +155,96 @@ async function uploadFile(file,path){
 // --- FILE LIST ---
 async function loadFiles(){
   updatePath();
-  const {data:{user}}=await client.auth.getUser();
-  const isAdmin=user?.user_metadata?.role==="admin";
-  let folderPrefix = "";
-  if(!isAdmin) folderPrefix = user?.user_metadata?.folder + "/";
+  const {data:{user}} = await client.auth.getUser();
+  const isAdmin = user?.user_metadata?.role === "admin";
 
-  const list=document.getElementById("fileList");
+  const list = document.getElementById("fileList");
   list.innerHTML="";
 
   // Zurück-Button
   if(currentPath!=""){
-    const up=document.createElement("div");
+    const up = document.createElement("div");
     up.className="file folder";
     up.innerText="⬅️ Zurück";
-    up.onclick=()=>{
-      currentPath=currentPath.split("/").slice(0,-2).join("/");
+    up.onclick = ()=>{
+      currentPath = currentPath.split("/").slice(0,-2).join("/");
       if(currentPath!="") currentPath+="/";
       loadFiles();
     };
     list.appendChild(up);
   }
 
-  // Alle Items auflisten
-  const {data,error}=await client.storage.from("files").list(folderPrefix + currentPath,{limit:1000});
+  // Ordnerliste
+  const {data:allItems, error} = await client.storage.from("files").list("", {limit:1000});
   if(error){console.error(error); return;}
 
   const folders = new Set();
 
-  data.forEach(item=>{
+  allItems.forEach(item=>{
     const parts = item.name.split("/");
-    if(parts.length>1) folders.add(parts[0]); // erstes Segment = Ordner
+    if(parts.length>1) folders.add(parts[0]);
+    else if(currentPath=="") folders.add(parts[0]);
   });
 
-  // Eigenen Benutzerordner anzeigen, falls leer
-  if(!isAdmin && user?.user_metadata?.folder && !folders.has(user.user_metadata.folder)){
-    folders.add(user.user_metadata.folder);
-  }
+  // Benutzerordner sichtbar machen
+  if(!isAdmin && user?.user_metadata?.folder) folders.add(user.user_metadata.folder);
 
   // Gemeinsamer Ordner „Familie“
-  if(!folders.has("Familie") && !isAdmin) folders.add("Familie");
+  if(!folders.has("Familie")) folders.add("Familie");
 
   // Ordner rendern
   folders.forEach(folder=>{
-    const div=document.createElement("div");
-    div.className="file folder";
-    div.innerText="📂 "+folder;
-    div.onclick=()=>{
-      currentPath = folder + "/";
-      loadFiles();
-    };
-    list.appendChild(div);
+    // nur im aktuellen Path
+    if(currentPath=="" || folder==currentPath.replace("/","")){
+      const div=document.createElement("div");
+      div.className="file folder";
+      div.innerText="📂 "+folder;
+      div.onclick=()=>{
+        currentPath=folder+"/";
+        loadFiles();
+      };
+      list.appendChild(div);
+    }
   });
 
-  // Dateien rendern
-  data.forEach(item=>{
+  // Dateien im aktuellen Path rendern
+  allItems.forEach(item=>{
     if(item.id){
-      const div=document.createElement("div");
-      div.className="file";
-      div.innerHTML=`
-        <span>${item.name}</span>
-        <div>
-          <button class="download" onclick="downloadFile('${folderPrefix+currentPath+item.name}')">Download</button>
-          <button class="copy" onclick="copyLink('${folderPrefix+currentPath+item.name}')">Link</button>
-          <button class="open" onclick="openFile('${folderPrefix+currentPath+item.name}')">Öffnen</button>
-          <button class="delete" onclick="deleteFile('${folderPrefix+currentPath+item.name}')">Löschen</button>
-        </div>
-      `;
-      list.appendChild(div);
+      let itemPathParts = item.name.split("/");
+      let basePath = itemPathParts.slice(0,-1).join("/") + "/";
+      if(basePath == currentPath){
+        const div = document.createElement("div");
+        div.className="file";
+        div.innerHTML=`
+          <span>${itemPathParts[itemPathParts.length-1]}</span>
+          <div>
+            <button class="download" onclick="downloadFile('${item.name}')">Download</button>
+            <button class="copy" onclick="copyLink('${item.name}')">Link</button>
+            <button class="open" onclick="openFile('${item.name}')">Öffnen</button>
+            <button class="delete" onclick="deleteFile('${item.name}')">Löschen</button>
+          </div>
+        `;
+        list.appendChild(div);
+      }
     }
   });
 }
 
 // --- PRIVATE DOWNLOAD ---
 async function downloadFile(path){
-  const {data,error}=await client.storage.from("files").createSignedUrl(path,60);
+  const {data,error} = await client.storage.from("files").createSignedUrl(path,60);
   if(error){alert(error.message);return;}
   window.open(data.signedUrl);
 }
 
 async function openFile(path){
-  const {data,error}=await client.storage.from("files").createSignedUrl(path,60);
+  const {data,error} = await client.storage.from("files").createSignedUrl(path,60);
   if(error){alert(error.message);return;}
   window.open(data.signedUrl,"_blank");
 }
 
 async function copyLink(path){
-  const {data,error}=await client.storage.from("files").createSignedUrl(path,300);
+  const {data,error} = await client.storage.from("files").createSignedUrl(path,300);
   if(error){alert(error.message);return;}
   navigator.clipboard.writeText(data.signedUrl);
   alert("Link kopiert");
